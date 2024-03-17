@@ -200,8 +200,10 @@ for season_iter in SeasonList:
                 idx = len(df_stats)
                 df_stats.loc[idx,:] = row_to_insert
 
+            #Replace whitespace with underscore for depositing file
+            category_dir = re.sub(r'\s','_',category_type)
             #Save down csv file in data location
-            df_stats.to_csv(f'./data/{season_num}_{round_number}_{category_type}.csv')
+            df_stats.to_csv(f'./data/{category_dir}/{season_num}_{round_number}_{category_type}.csv')
 
             #Delete the data frame
             del df_stats
