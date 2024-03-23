@@ -33,8 +33,28 @@ def venue_to_city(x):
 #Map the venues to cities
 df_matches['City'] = df_matches['Venue'].apply(venue_to_city)
 
-#Join thwe weather data to the match data
+#Join the weather data to the match data
 df_matches = df_matches.merge(df_weather,on=['Date','City'],how='left')
+##########################
+#Produce two-sided dataset
+
+#Modify dataset to contain both sides of the matches as rows
+#Rename columns in preparation for creating a combined dataset 
+df_matches = df_matches.rename({'Team1':'Team','Team2':'Opponent','Points1':'PointsF',
+                    'Points2':'PointsA','Winner1':'Outcome',
+                   'Home/Away1':'H/A','Home/Away2':'oppH/A'}, axis='columns')
+
+#Create a copy of the dataset and rename columns to have opponent side
+df_matches_opp = df_matches.copy(deep=True)
+#Rename columns for other side of match
+df_matches_opp = df_matches_opp.rename({'Team':'Opponent','Opponent':'Team','PointsF':'PointsA',
+                    'PointsA':'PointsF',
+                   'H/A':'oppH/A','oppH/A':'H/A'}, axis='columns')
+#Redefine Outcome for opponent side
+df_matches_opp['Outcome'] = abs(df_matches_opp['Outcome']-1) 
+
+#Concatenate the two sides of the matches
+df_matches_out = pd.concat([df_matches,df_matches_opp],ignore_index=True)
 
 #Save down the newly created match data
-df_matches.to_csv('./data/MatchData_v2.csv')
+df_matches_out.to_csv('./data/MatchData_v2.csv')
