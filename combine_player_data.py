@@ -89,6 +89,9 @@ for file in file_list[1:]:
         #Join together
         df_main = df_main.merge(df_temp, on=['Player','Season','Round'], how='left')
 
+#Clean up, deleting combined files
+for file_name in file_list_path:
+     pathlib.Path(file_name).unlink()
 
 #Load in player team data
 df_main['lPlayer'] = df_main['Player'].str.lower()
@@ -171,7 +174,6 @@ df_main.loc[(df_main['Player']=='Todd Banfield')&(df_main['Season']==2013),'Team
 
 df_main.to_csv('./data/PlayerData_v1.csv')
 
-#TODO: Delete the raw data no longer needed 
 
      
 
