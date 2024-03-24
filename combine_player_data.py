@@ -89,10 +89,8 @@ for file in file_list[1:]:
         #Join together
         df_main = df_main.merge(df_temp, on=['Player','Season','Round'], how='left')
 
-#Clean up, deleting combined files
-for file_name in file_list_path:
-     pathlib.Path(file_name).unlink()
-
+#Create copy as the raw player dataset
+df_main_raw = df_main.copy(deep=True)
 #Load in player team data
 df_main['lPlayer'] = df_main['Player'].str.lower()
 df_team_player = pd.read_csv('./data/player_team.csv',index_col=0)
@@ -159,6 +157,7 @@ print('There are: ',sum(df_main['Team'].isna()),' empty Team cells')
 #Matching team's were found through AFL website or otherwise
 df_main.loc[df_main['Player']=='Abe Davis','Team'] = 'Sydney'
 df_main.loc[df_main['Player']=='Callum M. Brown','Team'] = 'Greater Western Sydney'
+df_main.loc[df_main['Player']=='Callum L. Brown','Team'] = 'Collingwood' #Correction, had previously been left out
 df_main.loc[df_main['Player']=='Clay Cameron','Team'] = 'Gold Coast'
 df_main.loc[df_main['Player']=='Daniel Pearce','Team'] = 'Western Bulldogs'
 df_main.loc[df_main['Player']=='Fraser McInnes','Team'] = 'West Coast'
@@ -171,8 +170,92 @@ df_main.loc[(df_main['Player']=='Lewis Stevenson')&(df_main['Season']==2012),'Te
 df_main.loc[(df_main['Player']=='Shane Kersten')&(df_main['Season']==2013),'Team'] = 'Geelong'
 df_main.loc[(df_main['Player']=='Todd Banfield')&(df_main['Season']==2013),'Team'] = 'Brisbane Lions'
 
+##############################################################
+#CORRECTION FOR NAMES AND TEAMS FOR PLAYERS WITH SIMILAR NAMES
+#Rename 'Player' column for later joining
+df_main_raw = df_main_raw.rename(columns={'Player':'Player_corr'})
+#Get columns to join together raw and processed data
+join_cols = df_main_raw.columns.to_list()
+join_cols.remove('Player_corr')
 
-df_main.to_csv('./data/PlayerData_v1.csv')
+#Join the raw player name onto the main data
+df_join = df_main.merge(df_main_raw,on=join_cols,how='left')
+
+#Extract Bobby Hill and Angus Litherland data to prevent removal in fuzzy matching
+bobbyHillRounds = ['Round '+ str(i) for i in range(17,24)]
+bobbyHillRounds.append('Preliminary Finals')
+df_bobbyHill = df_main[(df_main['Player']=='Bobby Hill')&(df_main['Season']==2019)&(df_main['Round'].isin(bobbyHillRounds))]
+df_angusLitherland = df_main[(df_main['Player']=='Angus Litherland')&(df_main['Season']==2022)&(df_main['Round']=='Round 2')]
+#Keep data rows to place back into the dataset
+df_to_concat = pd.concat([df_bobbyHill,df_angusLitherland],ignore_index=True)
+
+#Create name similarity score between the old and new data playerr names
+df_join['Name_Sim_Score'] = df_join.apply(lambda x: fuzz.ratio(x.Player,x.Player_corr),axis=1)
+
+#If in the similar names list replace 'Player' with 'Player_corr',
+#otherwise leave the same
+corr_names_list = ['Scott D. Thompson','Sam J. Reid','Josh J. Kennedy',
+    'Tom J. Lynch','Mitchell Brown','Bailey J. Williams']
+
+#Function for name replacement
+def correct_names(x):
+    if x.Player in corr_names_list:
+        return x.Player_corr
+    else:
+        return x.Player
+
+#Keep only those with 80 or higher sim score to filter out
+#duplicate rows created by the same player stats in a given round
+#(rare occurrence but does happen)
+df_temp = df_join.loc[df_join['Name_Sim_Score']>=80,:]
+#Correct the names
+df_temp.loc[:,'Player'] = df_temp.apply(correct_names,axis=1)
+ #Discard the Player_corr and similarity score columns, no longer needed
+df_temp.drop(['Player_corr','Name_Sim_Score'],inplace=True,axis=1)
+#Add back in Bobby Hill and Angus Litherland data
+df_corrected = pd.concat([df_temp,df_to_concat],ignore_index=True)
+#Remove any duplicate rows
+df_corrected.drop_duplicates(inplace=True)
+
+#Reassign Team for the similar names
+#Scott D. Thompson
+df_corrected.loc[df_corrected['Player']=='Scott D. Thompson','Team'] = 'North Melbourne'
+#Scott Thompson
+df_corrected.loc[df_corrected['Player']=='Scott Thompson','Team'] = 'Adelaide'
+
+#Sam J. Reid
+df_corrected.loc[df_corrected['Player']=='Sam J. Reid','Team'] = 'Greater Western Sydney'
+#Sam Reid
+df_corrected.loc[df_corrected['Player']=='Sam Reid','Team'] = 'Sydney'
+
+#Josh P. Kennedy
+df_corrected.loc[df_corrected['Player']=='Josh P. Kennedy','Team'] = 'Sydney'
+#Josh J. Kennedy
+df_corrected.loc[df_corrected['Player']=='Josh J. Kennedy','Team'] = 'West Coast'
+
+#Tom J. Lynch
+df_corrected.loc[(df_corrected['Player']=='Tom J. Lynch')&(df_corrected['Season']<=2018),'Team'] = 'Gold Coast'
+df_corrected.loc[(df_corrected['Player']=='Tom J. Lynch')&(df_corrected['Season']>2018),'Team'] = 'Richmond'
+#Tom Lynch
+df_corrected.loc[df_corrected['Player']=='Tom Lynch','Team'] = 'Adelaide'
+
+#Mitch Brown: West Coast
+df_corrected.loc[df_corrected['Player']=='Mitch Brown','Team'] = 'West Coast'
+#Mitchell Brown
+df_corrected.loc[(df_corrected['Player']=='Mitchell Brown')&(df_corrected['Season']<=2014),'Team'] = 'Geelong'
+df_corrected.loc[(df_corrected['Player']=='Mitchell Brown')&(df_corrected['Season']>2014)&(df_corrected['Season']<=2019),'Team'] = 'Essendon'
+df_corrected.loc[(df_corrected['Player']=='Mitchell Brown')&(df_corrected['Season']>2019),'Team'] = 'Melbourne'
+
+#Bailey J. Williams
+df_corrected.loc[df_corrected['Player']=='Bailey J. Williams','Team'] = 'West Coast'
+#Bailey Williams
+df_corrected.loc[df_corrected['Player']=='Bailey Williams','Team'] = 'Western Bulldogs'
+
+#Remove duplicate rows
+df_corrected.drop_duplicates(inplace=True)
+
+#Save down the Player Data
+df_corrected.to_csv('./data/PlayerData_v1.csv')
 
 
      
