@@ -6,6 +6,21 @@ import numpy as np
 
 ##################
 #HELPER FUNCTIONS#
+def decile_binning(data_in):
+    data_out = deepcopy(data_in)
+    #Get numerical columns
+    #Extract only ther numeric columns
+    numerics = ['int16', 'int32', 'int64', 'float16', 'float32', 'float64']
+    num_cols = list(data_out.select_dtypes(include=numerics).columns)
+    for col in num_cols:
+        try:
+            data_out.loc[:,col] = pd.qcut(data_out[col],10,duplicates='drop') 
+        except:
+            continue
+    return data_out
+
+
+
 #Produces bin combinations for categorical varaibles
 def get_bin_combos_cat(list_in):
         list_out = deepcopy(list_in)

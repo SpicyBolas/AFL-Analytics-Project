@@ -125,6 +125,8 @@ def top_down_preproc(data_players_in,data_match_in,max_date):
                 df_matches_v2.iloc[i, df_matches_v2.columns.get_loc('win_streak')] = df_matches_v2.iloc[i-1,:]['win_streak'] + df_matches_v2.iloc[i,:]['Outcome']
             else:
                 df_matches_v2.iloc[i, df_matches_v2.columns.get_loc('win_streak')] = 0
+    #Lag the win streak by 1
+    df_matches_v2['win_streak'] = df_matches_v2['win_streak'].shift()
     #Remove the variables used in derivation
     df_matches_v2 = df_matches_v2.drop(['Team_lag','Season_lag'],axis=1)
     
