@@ -173,8 +173,6 @@ def encode_split_data(data_in,encode=False):
     #Split the data
     df_ML_IT, df_ML_OOT, X_train, X_test, y_train, y_test = split_preprocess(df_ML)
     #Drop season from all the data
-    df_ML_IT = df_ML_IT.drop('Season',axis=1)
-    df_ML_OOT = df_ML_OOT.drop('Season',axis=1)
     X_train.drop('Season',axis=1,inplace=True)
     X_test.drop('Season',axis=1,inplace=True)
 
