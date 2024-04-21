@@ -1,4 +1,6 @@
-#Description: Extracts and saves match data by year (2012-2024) from AFL Table website
+#Description: Makes predictions for the week's data
+#TODO: Remove hard coding of the round and season selected
+#TODO: Update to new model using last season finalist variables
 #################
 #PACKAGE IMPORTS#
 from bs4 import BeautifulSoup 
@@ -410,8 +412,7 @@ df_matches_comb_v3['Prob_final_team'] = (df_matches_comb_v3['Prob_team']+(1-df_m
 df_matches_comb_v3['Outcome_lag'] = df_matches_comb_v3['Outcome'].shift()
 
 #Filter to only take latest unpredicted round
-df_final = df_matches_comb_v3[(~df_matches_comb_v3['Outcome_lag'].isna())&(df_matches_comb_v3['Outcome'].isna())&\
-                   (df_matches_comb_v3['Round']!='Round 1')][['Team','Opponent','Season','Round','Prob_final_team']]
+df_final = df_matches_comb_v3[(df_matches_comb_v3['Round']=='Round 7')][['Team','Opponent','Season','Round','Prob_final_team']]
 
 #Create unique index for deduplicating the two match sides
 def team_opp_col(x):

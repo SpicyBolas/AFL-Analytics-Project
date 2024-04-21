@@ -180,12 +180,35 @@ def top_down_preproc(data_players_in,data_match_in,max_date):
     df_matches_v3 = df_matches_v2[~((df_matches_v2['Round'].isin(['Round 1','Round 2','Round 3','Round 4','Round 5'])))]
 
     #Remove rows still containing NaN in 'Last_Winner'
-    df_matches_v3 = df_matches_v3.dropna()
+    df_matches_v3 = df_matches_v3[~df_matches_v3['Last_Winner'].isnull()]
+    #Remove the first Season of data since previous season information is required
+    df_matches_v3 = df_matches_v3[df_matches_v3['Season']>2012]
+
+    #Obtain the teams who were in the finals in the previous season
+    #Join these to the data
+    df_finalists=data_match_in[data_match_in['Round'].str.contains(r'Final')][['Season','Team']].drop_duplicates()
+    df_finalists['prevSeasFinl'] = 1 #flag to indicate was in the previous final
+    df_finalists['Season_Join'] = df_finalists['Season']+1 #Increment season by 1 to join onto future season
+    df_finalists.drop('Season',axis=1,inplace=True)
+    #Join in if the team was in the finals last season
+    df_matches_v3 = df_matches_v3.merge(df_finalists,left_on=['Team','Season'],right_on=['Team','Season_Join'],how='left').drop('Season_Join',axis=1)
+    #Rename for team
+    df_matches_v3.rename(columns={'prevSeasFinl':'prevSeasFinl_team'},inplace=True)
+    #Join in if the opponent was in the finals last season
+    df_matches_v3=df_matches_v3.merge(df_finalists,left_on=['Opponent','Season'],right_on=['Team','Season_Join'],how='left').drop(['Season_Join','Team_y'],axis=1)
+    #Rename for opponent
+    df_matches_v3.rename(columns={'prevSeasFinl':'prevSeasFinl_opp','Team_x':'Team'},inplace=True)
+    #Ensure rows are sorted on the team, season and round
+    df_matches_v3 = df_matches_v3.sort_values(['Team','Season','RoundNum'])
+    #Replace the NAs with 0
+    df_matches_v3[['prevSeasFinl_team', 'prevSeasFinl_opp']] = df_matches_v3[['prevSeasFinl_team', 'prevSeasFinl_opp']].fillna(value=0)
+
+
     return df_matches_v3
 
 #Encode and split the data for training
 def encode_split_data(data_in,OOT_year,encode=False):
-    #Remover the time based data and points for and against at present match
+    #Remove the time based data and points for and against at present match
     #Remove Season later after separating into IT/OOT
     df_ML = data_in.drop(['Round','Date','RoundNum'],axis=1)
 

@@ -76,9 +76,6 @@ df_matches.drop(['AttenTime','DateTime'],axis=1,inplace=True)
 #Define Team 1 Winner Flag
 df_matches['Winner1'] = df_matches.apply(lambda x: int(x.Points1>x.Points2),axis=1)
 
-#Save down the data as a csv
-#df_matches.to_csv('./data/MatchData_v1.csv')
-
 ##########################
 #Get home/away information
 #From wikipedia get home teams for different stadiums
@@ -252,5 +249,4 @@ df_matches = df_matches_temp.copy(deep=True)
 #Save down the data as a csv
 df_matches.to_csv('./data/MatchData_v1.csv')
 
-#TODO: Join on Weather forecasts/occurrences
 #TODO: Join on player injuries
